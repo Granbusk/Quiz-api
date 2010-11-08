@@ -1,15 +1,22 @@
 <?php @session_start();
 
-$_SESSION['uid'] = 1;
-
 require_once 'settings.php';
-require_once 'DB.php';
-require_once 'ArrayToXML.php';
 
-require_once 'model/User.php';
+require_once 'util/DB.php';
+require_once 'util/Security.php';
+require_once 'util/ArrayToXML.php';
+
+require_once 'model/Group.php';
 require_once 'model/Question.php';
+require_once 'model/User.php';
 
-list($model, $action) = explode('/', $_GET['query']);
+$params = explode('/', $_GET['query']);
+
+Security::sanitize($params);
+Security::sanitize($_POST);
+
+$model = array_shift($params);
+$action = array_shift($params);
 
 $response = null;
 
@@ -21,28 +28,51 @@ switch ($model) {
 
         if ($user->signup()) {
           $response = User::login($_POST['email'], $_POST['password']);
-        }
-        
+        }        
         break;
 
       case 'login':
-        $response = User::login($_POST['email'], $_POST['password']);
-        
+        $response = User::login($_POST['email'], $_POST['password']);        
         break;
 
       case 'update':
         $user = new User($_POST['name'], $_POST['email'], $_POST['epass']);
-
         $response = $user->update($_POST['npass']);
-
         break;
 
       case 'logout':
-        User::logout();
+        $response = User::logout();
+        break;
+    }    
+    break;
 
+  case 'group':
+    switch ($action) {
+      case 'create':
+        $response = Group::create($_POST['name'], $_POST['password']);
+        break;
+
+      case 'join':
+        $_POST['password'] = array_key_exists('password', $_POST) ? $_POST['password'] : '';        
+        $response = Group::join($_POST['gid'], $_POST['password']);
+        break;
+
+      case 'leave':
+        $response = Group::leave($_POST['gid']);
+        break;
+
+      case 'get':
+        switch ($params[0]) { 
+          case 'users':
+            $response = Group::getUsers($params[1]);
+            break;
+
+          case 'mine':
+            $response = Group::getMine();
+            break;
+        }
         break;
     }
-    
     break;
 
   case 'question':
@@ -50,30 +80,23 @@ switch ($model) {
       case 'add':
         $_POST['question'] = array_key_exists('question', $_POST) ? $_POST['question'] : '';
         $_POST['alternatives'] = array_key_exists('alternatives', $_POST) ? $_POST['alternatives'] : array();
-        $_POST['categories'] = array_key_exists('categories', $_POST) ? $_POST['categories'] : array();
-
-        Question::add($_POST['question'], $_POST['alternatives'], $_POST['categories']);
-
+        $_POST['groups'] = array_key_exists('groups', $_POST) ? $_POST['groups'] : array();
+        Question::add($_POST['question'], $_POST['alternatives'], $_POST['groups']);
         break;
 
       case 'get':
-        $_POST['categories'] = array_key_exists('categories', $_POST) ? $_POST['categories'] : array();
-        
-        $response = Question::get($_POST['categories']);
-
+        $_POST['groups'] = array_key_exists('groups', $_POST) ? $_POST['groups'] : array();        
+        $response = Question::get($_POST['groups']);
         break;
 
       case 'answer':
         $_POST['qid'] = array_key_exists('qid', $_POST) ? $_POST['qid'] : '';
         $_POST['cid'] = array_key_exists('cid', $_POST) ? $_POST['cid'] : '';
-
         $response = Question::answer($_POST['qid'], $_POST['cid']);
-
         break;
     }
-
     break;
-  // end default
+  // end $model
 }
 
 header(200);

@@ -24,11 +24,11 @@ class ArrayToXML {
       // no numeric keys in our xml please!
       if (is_numeric($key)) {
         // make string key...
-        $key = "element_" . ($key + 1);
+        $key = 'node';
       }
 
       // replace anything not alpha numeric
-      $key = preg_replace('/[^a-zA-Z0-9\_]/i', '', $key);
+      $key = preg_replace('/[^a-z0-9\_]/i', '', strtolower($key));
 
       // if there is another array found recrusively call this function
       if (is_array($value)) {

@@ -63,7 +63,7 @@ abstract class DB {
   public static function getInsertId() {
     $id = self::$lastInsertId;
 
-    unset(self::$lastInsertId);
+    self::$lastInsertId = null;
 
     return $id;
   }

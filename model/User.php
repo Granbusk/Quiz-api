@@ -10,10 +10,7 @@ class User {
 
     $this->name = $name;
     $this->email = $email;
-
-    if (strlen(trim($password)) > 0) {
-      $this->password = md5($password);
-    }
+    $this->password = $password; // password is hashed by client
   }
 
   public function signup() {
@@ -24,7 +21,7 @@ class User {
       return false;
     }
 
-    $stmt = DB::query("INSERT INTO user (`email`, `password`, `name`) VALUES (?, ?, ?)", $this->email, $this->password, $this->name);
+    $stmt = DB::query("INSERT INTO `user` (`email`, `password`, `name`) VALUES (?, ?, ?)", $this->email, $this->password, $this->name);
 
     return DB::querySuccessful($stmt);
   }
@@ -37,33 +34,29 @@ class User {
       return false;
     }
 
-    $existingPassword = DB::fetchField(self::query("SELECT `password` FROM user WHERE `uid`=?", $_SESSION['uid']));
+    $existingPassword = DB::fetchField(self::query("SELECT `password` FROM `user` WHERE `uid`=?", $_SESSION['uid']));
 
     if (isset($this->password)) {
       if($this->password != $existingPassword || !isset($newPassword)) {
         return false;
       }
       else {
-        $this->password = md5($newPassword);
+        $this->password = $newPassword;
       }
     }
     else {
       $this->password = $existingPassword;
     }
 
-    DB::query("UPDATE user SET `name`=?, `email`=?, `password`=? WHERE `uid`=?", $this->name, $this->email, $this->password, $_SESSION['uid']);
+    DB::query("UPDATE `user` SET `name`=?, `email`=?, `password`=? WHERE `uid`=?", $this->name, $this->email, $this->password, $_SESSION['uid']);
 
     return true;
   }
 
   public static function login($email, $password) {
-    $passHash = md5($password);
-
-    $stmt = DB::query("SELECT `uid` FROM user WHERE (`email`=? OR `name`=?) AND `password`=?", $email, $email, $passHash);
-
-    $_SESSION['uid'] = DB::fetchField($stmt);
-
-    return self::get($_SESSION['uid'], false);
+    $_SESSION['uid'] = DB::fetchField(DB::query("SELECT `uid` FROM `user` WHERE (`email`=? OR `name`=?) AND `password`=?", $email, $email, $password));
+    
+    return self::get($_SESSION['uid']);
   }
 
   public static function logout() {
@@ -79,7 +72,7 @@ class User {
       $uid = $_SESSION['uid'];
     }
 
-    $stmt = DB::query("SELECT `uid`, `name`, `email` FROM user WHERE `uid`=?", $uid);
+    $stmt = DB::query("SELECT `uid`, `name`, `email` FROM `user` WHERE `uid`=?", $uid);
 
     $user = DB::fetchArray($stmt);
 
