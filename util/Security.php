@@ -3,6 +3,11 @@ class Security {
   public static function sanitize(&$input) {
     if (is_array($input)) {
       foreach ($input as $field=>$value) {
+        if (is_array($value)) {
+          self::sanitize($value);
+          return;
+        }
+        
         $input[$field] = htmlspecialchars(strip_tags($value));
       }
     }

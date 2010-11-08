@@ -12,6 +12,10 @@ require_once 'model/User.php';
 
 $params = explode('/', $_GET['query']);
 
+foreach ($_POST as $field=>$serializedValue) {
+  $_POST[$field] = unserialize(base64_decode($serializedValue));
+}
+
 Security::sanitize($params);
 Security::sanitize($_POST);
 
@@ -80,8 +84,9 @@ switch ($model) {
       case 'add':
         $_POST['question'] = array_key_exists('question', $_POST) ? $_POST['question'] : '';
         $_POST['alternatives'] = array_key_exists('alternatives', $_POST) ? $_POST['alternatives'] : array();
-        $_POST['groups'] = array_key_exists('groups', $_POST) ? $_POST['groups'] : array();
-        Question::add($_POST['question'], $_POST['alternatives'], $_POST['groups']);
+        $_POST['correct'] = array_key_exists('correct', $_POST) ? $_POST['correct'] : array();
+          
+        $response = Question::add($_POST['question'], $_POST['alternatives'], $_POST['correct'], $_POST['gid']);
         break;
 
       case 'get':
@@ -91,8 +96,8 @@ switch ($model) {
 
       case 'answer':
         $_POST['qid'] = array_key_exists('qid', $_POST) ? $_POST['qid'] : '';
-        $_POST['cid'] = array_key_exists('cid', $_POST) ? $_POST['cid'] : '';
-        $response = Question::answer($_POST['qid'], $_POST['cid']);
+        $_POST['aid'] = array_key_exists('aid', $_POST) ? $_POST['aid'] : '';
+        $response = Question::answer($_POST['qid'], $_POST['aid']);
         break;
     }
     break;

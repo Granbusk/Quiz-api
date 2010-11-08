@@ -27,7 +27,7 @@ class Group {
 
   public static function userCanCreateQuestion($gid) {
     $isMod = DB::fetchField(DB::query("SELECT COUNT(*) FROM `user_group` WHERE `uid`=? AND `gid`=? AND (`moderator`=? OR `administrator`=?)", $_SESSION['uid'], $gid, 1, 1));
-
+    
     return $isMod == 1;
   }
 

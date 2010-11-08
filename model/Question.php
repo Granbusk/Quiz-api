@@ -1,33 +1,51 @@
 <?php
 class Question {
 
-  public static function add($question, $alternatives, $groups) {
+  public static function add($question, $alternatives, $correct, $gid) {
     Security::requireLoggedIn();
+
+    if (!Group::userCanCreateQuestion($gid)) {
+      return false;
+    }
+
+    if (strlen($question) == 0 || strlen(implode('', $alternatives)) == 0) {
+      return false;
+    }
+
+    DB::query("INSERT INTO `question` (`uid`, `text`) VALUES (?, ?)", $_SESSION['uid'], $question);
     
-    $qid = DB::getInsertId(DB::query("INSERT INTO `question` (`uid`, `question`) VALUES (?, ?)", $_SESSION['uid'], $question));
+    $qid = DB::getInsertId();
 
-    foreach ($alternatives as $alt) {
-      DB::query("INSERT INTO `alternative` (`qid`, `alternative`, `correct`) VALUES (?, ?, ?)", $qid, $alt['alternative'], $alt['correct']);
+    foreach ($alternatives as $key=>$text) {
+      DB::query("INSERT INTO `alternative` (`qid`, `text`, `correct`) VALUES (?, ?, ?)", $qid, $text, $key == $correct ? 1 : 0);
     }
 
-    foreach ($groups as $gid) {
-      if (Group::userCanCreateQuestion($gid)) {
-        DB::query("INSERT INTO `question_group` (`qid`, `gid`) VALUES (?, ?)", $qid, $gid);
-      }
-    }
+    DB::query("INSERT INTO `question_group` (`qid`, `gid`) VALUES (?, ?)", $qid, $gid);
+
+    return true;
   }
 
   public static function get($groups) {
-    if (count($groups) > 0) {
-      $query = "SELECT `q`.`qid`, `q`.`question` FROM `question` `q`, `question_groups` `qg` WHERE `q`.`removed`=? AND `qg`.`cid` IN (" . implode(',', $groups) . ") AND `q`.`qid`=`qg`.`qid` AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?) ORDER BY RAND() LIMIT 1";
-    }
-    else {
-      $query = "SELECT `q`.`qid`, `q`.`question` FROM `question` `q` WHERE `q`.`removed`=? AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?) ORDER BY RAND() LIMIT 1";
-    }
-
-    $question = DB::fetchArray(DB::query($query, 0, $_SESSION['uid']));
     
-    $alternatives = DB::fetchAll(DB::query("SELECT `aid`, `alternative` FROM `alternative` WHERE `qid`=?", $question['qid']));
+    $query =
+     "SELECT
+        `q`.`qid`,
+        `q`.`text`
+      FROM
+        `question` `q`,
+        `question_group` `qg`
+      WHERE
+        `q`.`removed`=?
+        AND `q`.`qid`=`qg`.`qid`
+        AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?)
+        AND `qg`.`gid` IN (SELECT `ug`.`gid` FROM `user_group` `ug` WHERE `ug`.`uid`=?)
+        AND `q`.`qid`=`qg`.`qid`
+      ORDER BY RAND() LIMIT 1
+    ";
+
+    $question = DB::fetchArray(DB::query($query, 0, $_SESSION['uid'], $_SESSION['uid']));
+    
+    $alternatives = DB::fetchAll(DB::query("SELECT `aid`, `text` FROM `alternative` WHERE `qid`=?", $question['qid']));
 
     return array(
       'question' => $question,
@@ -43,7 +61,7 @@ class Question {
     DB::query("INSERT INTO `user_answer` (`uid`, `qid`, `correct`) VALUES (?, ?, ?)", $_SESSION['uid'], $qid, $correct);
 
     return array(
-      'correct' => $correct == 1,
+      'result' => $correct == 1 ? 'correct' : 'wrong',
     );
   }
 }

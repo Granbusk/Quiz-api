@@ -14,7 +14,7 @@ abstract class DB {
     }
   }
 
-  public static function query() {
+  public static function query() {    
     self::dbInit();
 
     $args = func_get_args();
@@ -57,6 +57,7 @@ abstract class DB {
   }
 
   public static function querySuccessful($stmt) {
+
     return $stmt->errorCode() == '00000';
   }
 
