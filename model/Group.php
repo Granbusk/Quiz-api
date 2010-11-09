@@ -22,7 +22,7 @@ class Group {
   public static function getUsers($gid) {
     return array(
       'admin' => DB::fetchField(DB::query("SELECT COUNT(*) FROM `user_group` WHERE `gid`=? AND `uid`=? AND `administrator`=?", $gid, $_SESSION['uid'], 1)),
-      'users' => DB::fetchAll(DB::query("SELECT `u`.`uid`, `u`.`name`, `ug`.`administrator`, `ug`.`moderator` FROM `user` `u`, `user_group` `ug` WHERE `ug`.`gid`=? AND `ug`.`uid`=`u`.`uid` AND `ug`.`left`=?", $gid, 0)),
+      'users' => DB::fetchAll(DB::query("SELECT `u`.`uid`, `u`.`name`, `u`.`gravatar`, `ug`.`administrator`, `ug`.`moderator` FROM `user` `u`, `user_group` `ug` WHERE `ug`.`gid`=? AND `ug`.`uid`=`u`.`uid` AND `ug`.`left`=?", $gid, 0)),
     );    
   }
 
@@ -40,6 +40,38 @@ class Group {
     }
 
     return null;
+  }
+
+  public static function getTopList($gid, $limit) {
+    $count = DB::fetchField(DB::query("SELECT COUNT(*) FROM `question_group` WHERE `gid`=?", $gid));
+    
+    $users = DB::fetchAll(DB::query(
+      "SELECT
+         `u`.`uid`,
+         `u`.`name`,
+      (SELECT COUNT(*)
+         FROM
+           `user_answer` `ua`,
+           `question_group` `qg`
+         WHERE
+           `ua`.`qid`=`qg`.`qid`
+           AND `qg`.`gid`=`ug`.`gid`
+           AND `ug`.`uid`=`ua`.`uid`
+           AND `ua`.`correct`=?
+       ) AS `points`
+       FROM
+         `user_group` `ug`,
+         `user` `u`
+       WHERE
+         `ug`.`uid`=`u`.`uid`
+         AND `ug`.`gid`=?
+       ORDER BY
+         `points` DESC LIMIT " . $limit, 1, $gid));
+
+    return array(
+      'count' => $count,
+      'users' => $users,
+    );
   }
 
   public static function getMine() {

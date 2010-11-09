@@ -31,6 +31,8 @@ abstract class DB {
 
     $stmt->execute($args);
 
+    //print_r($stmt->errorInfo());
+
     self::$lastInsertId = self::$dbh->lastInsertId();
 
     return $stmt;

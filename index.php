@@ -26,8 +26,10 @@ switch ($model) {
       case 'signup':
         $user = new User($_POST['name'], $_POST['email'], $_POST['password']);
 
-        if ($user->signup()) {
-          $response = User::login($_POST['email'], $_POST['password']);
+        $response = $user->signup();
+
+        if ($response) {
+          User::login($_POST['email'], $_POST['password']);
         }        
         break;
 
@@ -36,12 +38,20 @@ switch ($model) {
         break;
 
       case 'update':
-        $user = new User($_POST['name'], $_POST['email'], $_POST['epass']);
+        $user = new User($_POST['name'], $_POST['email'], $_POST['epass'], $_POST['gravatar']);
         $response = $user->update($_POST['npass']);
         break;
 
       case 'logout':
         $response = User::logout();
+        break;
+
+      case 'check':
+        $response = array_key_exists('uid', $_SESSION) && is_numeric($_SESSION['uid']);
+        break;
+
+      case 'get':
+        $response = User::get(0, false);
         break;
     }    
     break;
@@ -78,6 +88,10 @@ switch ($model) {
             $response = Group::getMine();
             break;
 
+          case 'toplist':
+            $response = Group::getTopList($_POST['gid'], $_POST['limit']);
+            break;
+          
           default:
             if (is_numeric($params[0])) {
               $response = Group::getById($params[0]);
