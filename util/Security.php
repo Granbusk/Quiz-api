@@ -8,11 +8,11 @@ class Security {
           return;
         }
         
-        $input[$field] = htmlspecialchars(strip_tags($value));
+        $input[$field] = htmlentities(strip_tags($value));
       }
     }
     else {
-      $input = htmlspecialchars(strip_tags($input));
+      $input = htmlentities(strip_tags($input));
     }
   }
 

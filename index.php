@@ -55,6 +55,10 @@ switch ($model) {
         $response = Group::create($_POST['name'], $_POST['password']);
         break;
 
+      case 'find':
+        $response = Group::find($_POST['name']);
+        break;
+
       case 'join':
         $_POST['password'] = array_key_exists('password', $_POST) ? $_POST['password'] : '';        
         $response = Group::join($_POST['gid'], $_POST['password']);
@@ -80,6 +84,10 @@ switch ($model) {
             }
         }
         break;
+
+      case 'setmod':
+        $response = Group::setModerator($_POST['gid'], $_POST['uid'], $_POST['mod']);
+        break;
     }
     break;
 
@@ -88,17 +96,19 @@ switch ($model) {
       case 'add':
         $_POST['question'] = array_key_exists('question', $_POST) ? $_POST['question'] : '';        
         $_POST['correct'] = array_key_exists('correct', $_POST) ? $_POST['correct'] : null;
+        $_POST['answer-explanation'] = array_key_exists('answer-explanation', $_POST) ? $_POST['answer-explanation'] : '';
 
         $alternatives = array();
         for ($i=0; $i<4; $i++) {
           $alternatives[] = $_POST['alt-' . $i];
         }
           
-        $response = Question::add($_POST['question'], $alternatives, $_POST['correct'], $_POST['gid']);
+        $response = Question::add($_POST['question'], $alternatives, $_POST['correct'], $_POST['answer-explanation'], $_POST['gid']);
         break;
 
       case 'get':
-        $response = Question::get($params[0]);
+        $response = Question::get($params[0], $params[1]);
+        
         break;
 
       case 'answer':

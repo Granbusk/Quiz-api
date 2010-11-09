@@ -1,7 +1,7 @@
 <?php
 class Question {
 
-  public static function add($question, $alternatives, $correct, $gid) {
+  public static function add($question, $alternatives, $correct, $answerExplanation, $gid) {
     Security::requireLoggedIn();
 
     if (!Group::userCanCreateQuestion($gid)) {
@@ -12,11 +12,12 @@ class Question {
       return false;
     }
 
-    DB::query("INSERT INTO `question` (`uid`, `text`) VALUES (?, ?)", $_SESSION['uid'], $question);
+    DB::query("INSERT INTO `question` (`uid`, `text`, `answer_explanation`) VALUES (?, ?, ?)", $_SESSION['uid'], $question, $answerExplanation);
     
     $qid = DB::getInsertId();
 
     foreach ($alternatives as $key=>$text) {
+      
       DB::query("INSERT INTO `alternative` (`qid`, `text`, `correct`) VALUES (?, ?, ?)", $qid, $text, $key == $correct ? 1 : 0);
     }
 
@@ -25,7 +26,7 @@ class Question {
     return true;
   }
 
-  public static function get($gid) {
+  public static function get($gid, $prevQid) {
     if ($gid == 0) {
       $query =
        "SELECT
@@ -40,10 +41,10 @@ class Question {
           AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?)
           AND `qg`.`gid` IN (SELECT `ug`.`gid` FROM `user_group` `ug` WHERE `ug`.`uid`=?)
           AND `q`.`qid`=`qg`.`qid`
-        ORDER BY RAND() LIMIT 1
+        ORDER BY RAND() LIMIT 2
       ";
 
-      $question = DB::fetchArray(DB::query($query, 0, $_SESSION['uid'], $_SESSION['uid']));
+      $questions = DB::fetchAll(DB::query($query, 0, $_SESSION['uid'], $_SESSION['uid']));
     }
     else {
       $query =
@@ -59,12 +60,18 @@ class Question {
           AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?)
           AND `qg`.`gid`=?
           AND `q`.`qid`=`qg`.`qid`
-        ORDER BY RAND() LIMIT 1
+        ORDER BY RAND() LIMIT 2
       ";
 
-      $question = DB::fetchArray(DB::query($query, 0, $_SESSION['uid'], $gid));
+      $questions = DB::fetchAll(DB::query($query, 0, $_SESSION['uid'], $gid));
     }
-      
+
+    if (count($questions) == 0) {
+      return null;
+    }
+
+    $question = $questions[0]['qid'] == $prevQid && count($questions) > 1 ? $questions[1] : $questions[0];
+    
     $alternatives = DB::fetchAll(DB::query("SELECT `aid`, `text` FROM `alternative` WHERE `qid`=?", $question['qid']));
 
     return array(

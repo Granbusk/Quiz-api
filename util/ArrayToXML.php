@@ -38,8 +38,8 @@ class ArrayToXML {
       }
       else {
         // add single node.
-        $value = htmlentities($value);
-        $xml->addChild($key,$value);
+        $value = html_entity_decode($value);
+        $xml->addChild($key, $value);
       }
     }
     // pass back as string. or simple xml object if you want!
