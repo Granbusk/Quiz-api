@@ -8,7 +8,7 @@ class Question {
       return false;
     }
 
-    if (strlen($question) == 0 || strlen(implode('', $alternatives)) == 0) {
+    if (strlen($question) == 0 || is_null($correct)) {
       return false;
     }
 
@@ -25,26 +25,46 @@ class Question {
     return true;
   }
 
-  public static function get($groups) {
-    
-    $query =
-     "SELECT
-        `q`.`qid`,
-        `q`.`text`
-      FROM
-        `question` `q`,
-        `question_group` `qg`
-      WHERE
-        `q`.`removed`=?
-        AND `q`.`qid`=`qg`.`qid`
-        AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?)
-        AND `qg`.`gid` IN (SELECT `ug`.`gid` FROM `user_group` `ug` WHERE `ug`.`uid`=?)
-        AND `q`.`qid`=`qg`.`qid`
-      ORDER BY RAND() LIMIT 1
-    ";
+  public static function get($gid) {
+    if ($gid == 0) {
+      $query =
+       "SELECT
+          `q`.`qid`,
+          `q`.`text`
+        FROM
+          `question` `q`,
+          `question_group` `qg`
+        WHERE
+          `q`.`removed`=?
+          AND `q`.`qid`=`qg`.`qid`
+          AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?)
+          AND `qg`.`gid` IN (SELECT `ug`.`gid` FROM `user_group` `ug` WHERE `ug`.`uid`=?)
+          AND `q`.`qid`=`qg`.`qid`
+        ORDER BY RAND() LIMIT 1
+      ";
 
-    $question = DB::fetchArray(DB::query($query, 0, $_SESSION['uid'], $_SESSION['uid']));
-    
+      $question = DB::fetchArray(DB::query($query, 0, $_SESSION['uid'], $_SESSION['uid']));
+    }
+    else {
+      $query =
+       "SELECT
+          `q`.`qid`,
+          `q`.`text`
+        FROM
+          `question` `q`,
+          `question_group` `qg`
+        WHERE
+          `q`.`removed`=?
+          AND `q`.`qid`=`qg`.`qid`
+          AND `q`.`qid` NOT IN (SELECT `ua`.`qid` FROM `user_answer` `ua` WHERE `ua`.`uid`=?)
+          AND `qg`.`gid`=?
+          AND `q`.`qid`=`qg`.`qid`
+        ORDER BY RAND() LIMIT 1
+      ";
+
+      $question = DB::fetchArray(DB::query($query, 0, $_SESSION['uid'], $gid));
+    }
+      
     $alternatives = DB::fetchAll(DB::query("SELECT `aid`, `text` FROM `alternative` WHERE `qid`=?", $question['qid']));
 
     return array(
@@ -60,8 +80,13 @@ class Question {
     
     DB::query("INSERT INTO `user_answer` (`uid`, `qid`, `correct`) VALUES (?, ?, ?)", $_SESSION['uid'], $qid, $correct);
 
+    $correct_answer = $correct == 0 ? DB::fetchField(DB::query("SELECT `text` FROM `alternative` WHERE `qid`=? AND `correct`=?", $qid, 1)) : '';
+    $answer_description = DB::fetchField(DB::query("SELECT `answer_explanation` FROM `question` WHERE `qid`=?", $qid));
+
     return array(
-      'result' => $correct == 1 ? 'correct' : 'wrong',
+      'correct' => $correct == 1,
+      'answer' => $correct_answer,
+      'explanation' => $answer_description,
     );
   }
 }

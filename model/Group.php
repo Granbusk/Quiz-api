@@ -4,19 +4,27 @@ class Group {
   public static function create($name, $password) {
     Security::requireLoggedIn();
 
+    if (strlen(trim($name)) == 0) {
+      return false;
+    }
+
     DB::query("INSERT INTO `group` (`name`, `password`) VALUES (?, ?)", $name, $password);
 
     $gid = DB::getInsertId();
-
+    
     if ($gid > 0) {
       DB::query("INSERT INTO `user_group` (`uid`, `gid`, `moderator`, `administrator`) VALUES (?, ?, ?, ?)", $_SESSION['uid'], $gid, 1, 1);
     }
 
-    return DB::getInsertId();
+    return $gid;
   }
 
   public static function getUsers($gid) {
     return DB::fetchAll(DB::query("SELECT `u`.`uid`, `u`.`name` FROM `user` `u`, `user_group` `ug` WHERE `ug`.`gid`=? AND `ug`.`uid`=`u`.`uid` AND `ug`.`left`=?", $gid, 0));
+  }
+
+  public static function getById($gid) {
+    return DB::fetchArray(DB::query("SELECT `g`.`name`, (SELECT COUNT(*) FROM `user_group` `ug` WHERE `ug`.`gid`=`g`.`gid` AND `ug`.`uid`=? AND (`ug`.`moderator`=?)) AS `moderator` FROM `group` `g` WHERE `g`.`gid`=?", $_SESSION['uid'], 1, $gid));
   }
 
   public static function getMine() {

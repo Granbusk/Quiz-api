@@ -12,10 +12,6 @@ require_once 'model/User.php';
 
 $params = explode('/', $_GET['query']);
 
-foreach ($_POST as $field=>$serializedValue) {
-  $_POST[$field] = unserialize(base64_decode($serializedValue));
-}
-
 Security::sanitize($params);
 Security::sanitize($_POST);
 
@@ -53,6 +49,9 @@ switch ($model) {
   case 'group':
     switch ($action) {
       case 'create':
+        $_POST['name'] = array_key_exists('name', $_POST) ? $_POST['name'] : '';
+        $_POST['password'] = array_key_exists('password', $_POST) ? $_POST['password'] : '';
+
         $response = Group::create($_POST['name'], $_POST['password']);
         break;
 
@@ -74,6 +73,11 @@ switch ($model) {
           case 'mine':
             $response = Group::getMine();
             break;
+
+          default:
+            if (is_numeric($params[0])) {
+              $response = Group::getById($params[0]);
+            }
         }
         break;
     }
@@ -82,16 +86,19 @@ switch ($model) {
   case 'question':
     switch ($action) {
       case 'add':
-        $_POST['question'] = array_key_exists('question', $_POST) ? $_POST['question'] : '';
-        $_POST['alternatives'] = array_key_exists('alternatives', $_POST) ? $_POST['alternatives'] : array();
-        $_POST['correct'] = array_key_exists('correct', $_POST) ? $_POST['correct'] : array();
+        $_POST['question'] = array_key_exists('question', $_POST) ? $_POST['question'] : '';        
+        $_POST['correct'] = array_key_exists('correct', $_POST) ? $_POST['correct'] : null;
+
+        $alternatives = array();
+        for ($i=0; $i<4; $i++) {
+          $alternatives[] = $_POST['alt-' . $i];
+        }
           
-        $response = Question::add($_POST['question'], $_POST['alternatives'], $_POST['correct'], $_POST['gid']);
+        $response = Question::add($_POST['question'], $alternatives, $_POST['correct'], $_POST['gid']);
         break;
 
       case 'get':
-        $_POST['groups'] = array_key_exists('groups', $_POST) ? $_POST['groups'] : array();        
-        $response = Question::get($_POST['groups']);
+        $response = Question::get($params[0]);
         break;
 
       case 'answer':
