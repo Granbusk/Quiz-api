@@ -91,6 +91,10 @@ switch ($model) {
           case 'toplist':
             $response = Group::getTopList($_POST['gid'], $_POST['limit']);
             break;
+
+          case 'overview':
+            $response = Group::getOverview($_POST['gid']);
+            break;
           
           default:
             if (is_numeric($params[0])) {

@@ -85,7 +85,7 @@ class Question {
     
     $correct = DB::fetchField(DB::query("SELECT `correct` FROM `alternative` WHERE `qid`=? AND `aid`=?", $qid, $aid));
     
-    DB::query("INSERT INTO `user_answer` (`uid`, `qid`, `correct`) VALUES (?, ?, ?)", $_SESSION['uid'], $qid, $correct);
+    DB::query("INSERT INTO `user_answer` (`uid`, `qid`, `aid`, `correct`) VALUES (?, ?, ?, ?)", $_SESSION['uid'], $qid, $aid, $correct);
 
     $correct_answer = $correct == 0 ? DB::fetchField(DB::query("SELECT `aid` FROM `alternative` WHERE `qid`=? AND `correct`=?", $qid, 1)) : $aid;
     $answer_description = DB::fetchField(DB::query("SELECT `answer_explanation` FROM `question` WHERE `qid`=?", $qid));
