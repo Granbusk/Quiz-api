@@ -82,18 +82,31 @@ class Question {
 
   public static function answer($qid, $aid) {
     Security::requireLoggedIn();
-    
+
+    $validAnswers = DB::fetchAll(DB::query("SELECT `aid` FROM `alternative` WHERE `qid`=?", $qid));
+
+    $valid = false;
+    foreach ($validAnswers as $answer) {
+      if ($answer['aid'] == $aid) {
+        $valid = true;
+      }
+    }
+
+    if ($valid == false) {
+      return;
+    }
+
     $correct = DB::fetchField(DB::query("SELECT `correct` FROM `alternative` WHERE `qid`=? AND `aid`=?", $qid, $aid));
     
     DB::query("INSERT INTO `user_answer` (`uid`, `qid`, `aid`, `correct`) VALUES (?, ?, ?, ?)", $_SESSION['uid'], $qid, $aid, $correct);
 
     $correct_answer = $correct == 0 ? DB::fetchField(DB::query("SELECT `aid` FROM `alternative` WHERE `qid`=? AND `correct`=?", $qid, 1)) : $aid;
-    $answer_description = DB::fetchField(DB::query("SELECT `answer_explanation` FROM `question` WHERE `qid`=?", $qid));
+    $answer_explanation = DB::fetchField(DB::query("SELECT `answer_explanation` FROM `question` WHERE `qid`=?", $qid));
 
     return array(
       'correct' => $correct == 1,
       'answer' => $correct_answer,
-      'explanation' => $answer_description,
+      'explanation' => $answer_explanation,
     );
   }
 }
