@@ -25,7 +25,11 @@ class User {
       return false;
     }
 
-    $stmt = DB::query("INSERT INTO `user` (`email`, `password`, `name`) VALUES (?, ?, ?)", $this->email, $this->password, $this->name);
+    $stmt = DB::query("
+      INSERT INTO
+        `user` (`email`, `password`, `name`)
+        VALUES (?, ?, ?)
+      ", $this->email, $this->password, $this->name);
 
     return DB::querySuccessful($stmt);
   }
@@ -40,7 +44,14 @@ class User {
       $error[] = 2;
     }
     
-    $existingPassword = DB::fetchField(DB::query("SELECT `password` FROM `user` WHERE `uid`=?", $_SESSION['uid']));
+    $existingPassword = DB::fetchField(DB::query("
+      SELECT
+        `password`
+      FROM
+        `user`
+      WHERE
+        `uid`=?
+      ", $_SESSION['uid']));
 
     if ($this->password != '') {
       if($this->password != $existingPassword) {
@@ -57,13 +68,29 @@ class User {
       $this->password = $existingPassword;
     }
     
-    $nameInUse = DB::fetchField(DB::query("SELECT COUNT(*) FROM `user` WHERE `name`=? AND `uid`!=?", $this->name, $_SESSION['uid']));
+    $nameInUse = DB::fetchField(DB::query("
+      SELECT
+        COUNT(*)
+      FROM
+        `user`
+      WHERE
+        `name`=?
+        AND `uid`!=?
+      ", $this->name, $_SESSION['uid']));
 
     if ($nameInUse > 0) {
       $error[] = 5;
     }
 
-    $emailInUse = DB::fetchField(DB::query("SELECT COUNT(*) FROM `user` WHERE `email`=? AND `uid`!=?", $this->email, $_SESSION['uid']));
+    $emailInUse = DB::fetchField(DB::query("
+      SELECT
+        COUNT(*)
+      FROM
+        `user`
+      WHERE
+        `email`=?
+        AND `uid`!=?
+      ", $this->email, $_SESSION['uid']));
 
     if ($emailInUse > 0) {
       $error[] = 6;
@@ -71,12 +98,28 @@ class User {
 
 
     if (count($error) == 0) {
-      DB::query("UPDATE `user` SET `name`=?, `email`=?, `password`=? WHERE `uid`=?", $this->name, $this->email, $this->password, $_SESSION['uid']);
+      DB::query("
+        UPDATE
+          `user`
+        SET
+          `name`=?,
+          `email`=?,
+          `password`=?
+        WHERE
+          `uid`=?
+        ", $this->name, $this->email, $this->password, $_SESSION['uid']);
 
       if (isset($this->gravatar)) {
         $this->gravatarUrl = $this->gravatar == 1 ? "http://www.gravatar.com/avatar/" . md5($this->email) : '';
 
-        DB::query("UPDATE `user` SET `gravatar`=? WHERE `uid`=?", $this->gravatarUrl, $_SESSION['uid']);
+        DB::query("
+          UPDATE
+            `user`
+          SET
+            `gravatar`=?
+          WHERE
+            `uid`=?
+          ", $this->gravatarUrl, $_SESSION['uid']);
       }
 
       return array(0);
@@ -86,7 +129,19 @@ class User {
   }
 
   public static function login($email, $password) {
-    $_SESSION['uid'] = DB::fetchField(DB::query("SELECT `uid` FROM `user` WHERE (`email`=? OR `name`=?) AND `password`=?", $email, $email, $password));
+    $_SESSION['uid'] = DB::fetchField(DB::query("
+      SELECT
+        `uid`
+      FROM
+        `user`
+      WHERE
+        (
+          `email`=?
+        OR
+          `name`=?
+        )
+        AND `password`=?
+      ", $email, $email, $password));
     
     return self::get($_SESSION['uid']);
   }
@@ -104,7 +159,17 @@ class User {
       $uid = $_SESSION['uid'];
     }
 
-    $user = DB::fetchArray(DB::query("SELECT `uid`, `name`, `email`, `gravatar` FROM `user` WHERE `uid`=?", $uid));
+    $user = DB::fetchArray(DB::query("
+      SELECT
+        `uid`,
+        `name`,
+        `email`,
+        `gravatar`
+      FROM
+        `user`
+      WHERE
+        `uid`=?
+      ", $uid));
 
     if ($removeEmail) {
       unset($user['email']);

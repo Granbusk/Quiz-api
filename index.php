@@ -61,8 +61,9 @@ switch ($model) {
       case 'create':
         $_POST['name'] = array_key_exists('name', $_POST) ? $_POST['name'] : '';
         $_POST['password'] = array_key_exists('password', $_POST) ? $_POST['password'] : '';
+        $_POST['description'] = array_key_exists('description', $_POST) ? $_POST['description'] : '';
 
-        $response = Group::create($_POST['name'], $_POST['password']);
+        $response = Group::create($_POST['name'], $_POST['password'], $_POST['description']);
         break;
 
       case 'find':

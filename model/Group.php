@@ -2,19 +2,27 @@
 
 class Group {
 
-  public static function create($name, $password) {
+  public static function create($name, $password, $description) {
     Security::requireLoggedIn();
 
     if (strlen(trim($name)) < 4) {
       return false;
     }
 
-    DB::query("INSERT INTO `group` (`name`, `password`) VALUES (?, ?)", $name, $password);
+    DB::query("
+      INSERT INTO
+        `group` (`name`, `password`, `description`)
+        VALUES (?, ?, ?)
+      ", $name, $password, $description);
 
     $gid = DB::getInsertId();
 
     if ($gid > 0) {
-      DB::query("INSERT INTO `user_group` (`uid`, `gid`, `moderator`, `administrator`) VALUES (?, ?, ?, ?)", $_SESSION['uid'], $gid, 1, 1);
+      DB::query("
+        INSERT INTO
+          `user_group` (`uid`, `gid`, `moderator`, `administrator`)
+          VALUES (?, ?, ?, ?)
+        ", $_SESSION['uid'], $gid, 1, 1);
     }
 
     return $gid;
@@ -22,16 +30,61 @@ class Group {
 
   public static function getUsers($gid) {
     return array(
-        'admin' => DB::fetchField(DB::query("SELECT COUNT(*) FROM `user_group` WHERE `gid`=? AND `uid`=? AND `administrator`=?", $gid, $_SESSION['uid'], 1)),
-        'users' => DB::fetchAll(DB::query("SELECT `u`.`uid`, `u`.`name`, `u`.`gravatar`, `ug`.`administrator`, `ug`.`moderator` FROM `user` `u`, `user_group` `ug` WHERE `ug`.`gid`=? AND `ug`.`uid`=`u`.`uid` AND `ug`.`left`=?", $gid, 0)),
+        'admin' => DB::fetchField(DB::query("
+          SELECT
+            COUNT(*)
+          FROM
+            `user_group`
+          WHERE
+            `gid`=?
+            AND `uid`=?
+            AND `administrator`=?
+          ", $gid, $_SESSION['uid'], 1)),
+        
+        'users' => DB::fetchAll(DB::query("
+          SELECT
+            `u`.`uid`,
+            `u`.`name`,
+            `u`.`gravatar`,
+            `ug`.`administrator`,
+            `ug`.`moderator`
+          FROM
+            `user` `u`,
+            `user_group` `ug`
+          WHERE
+            `ug`.`gid`=?
+            AND `ug`.`uid`=`u`.`uid`
+            AND `ug`.`left`=?
+          ", $gid, 0)),
     );
   }
 
   public static function getById($gid) {
-    $joined = DB::fetchField(DB::query("SELECT COUNT(*) FROM `user_group` WHERE `gid`=? AND `uid`=?", $gid, $_SESSION['uid']));
+    $joined = DB::fetchField(DB::query("
+      SELECT
+        COUNT(*)
+      FROM
+        `user_group`
+      WHERE
+        `gid`=?
+        AND `uid`=?
+      ", $gid, $_SESSION['uid']));
 
     if ($joined) {
-      $group = DB::fetchArray(DB::query("SELECT `g`.`name`, `g`.`password`, `ug`.`administrator`, `ug`.`moderator`  FROM `group` `g`, `user_group` `ug` WHERE `ug`.`gid`=`g`.`gid` AND `ug`.`uid`=? AND `g`.`gid`=?", $_SESSION['uid'], $gid));
+      $group = DB::fetchArray(DB::query("
+        SELECT
+          `g`.`name`,
+          `g`.`password`,
+          `ug`.`administrator`,
+          `ug`.`moderator`
+        FROM
+          `group` `g`,
+          `user_group` `ug`
+        WHERE
+          `ug`.`gid`=`g`.`gid`
+          AND `ug`.`uid`=?
+          AND `g`.`gid`=?
+        ", $_SESSION['uid'], $gid));
 
       $group['protected'] = $group['password'] != '';
 
@@ -44,10 +97,17 @@ class Group {
   }
 
   public static function getTopList($gid, $limit) {
-    $count = DB::fetchField(DB::query("SELECT COUNT(*) FROM `question_group` WHERE `gid`=?", $gid));
+    $count = DB::fetchField(DB::query("
+      SELECT
+        COUNT(*)
+      FROM
+        `question_group`
+      WHERE
+        `gid`=?
+      ", $gid));
 
-    $users = DB::fetchAll(DB::query(
-                            "SELECT
+    $users = DB::fetchAll(DB::query("
+      SELECT
          `u`.`uid`,
          `u`.`name`,
       (SELECT COUNT(*)
@@ -76,7 +136,22 @@ class Group {
   }
 
   public static function getOverview($gid) {
-    $stats = DB::fetchArray(DB::query("SELECT COUNT(*) AS questions, (SELECT COUNT(*) FROM user_answer ua, question_group cqg WHERE ua.qid=cqg.qid AND cqg.gid=qg.gid AND ua.uid=?) AS answers  FROM question_group qg WHERE qg.gid=?", $_SESSION['uid'], $gid));
+    $stats = DB::fetchArray(DB::query("
+      SELECT
+        COUNT(*) AS `questions`,
+        (SELECT COUNT(*)
+          FROM
+            `user_answer` `ua`,
+            `question_group` `cqg`
+          WHERE
+            `ua`.`uid`=?
+            AND `ua`.`qid`=`cqg`.`qid`
+            AND `cqg`.`gid`=`qg`.`gid`
+        ) AS `answers`
+      FROM
+        `question_group` `qg`
+      WHERE `qg`.`gid`=?
+      ", $_SESSION['uid'], $gid));
 
     $overview = DB::fetchAll(DB::query("
        SELECT
@@ -115,11 +190,32 @@ class Group {
   public static function getMine() {
     Security::requireLoggedIn();
 
-    return DB::fetchAll(DB::query("SELECT `g`.`gid`, `g`.`name` FROM `group` `g`, `user_group` `ug` WHERE `ug`.`uid`=? AND `ug`.`left`=? AND `ug`.`gid`=`g`.`gid`", $_SESSION['uid'], 0));
+    return DB::fetchAll(DB::query("
+      SELECT
+        `g`.`gid`,
+        `g`.`name`,
+        `g`.`description`
+      FROM
+        `group` `g`,
+        `user_group` `ug`
+      WHERE
+        `ug`.`uid`=?
+        AND `ug`.`left`=?
+        AND `ug`.`gid`=`g`.`gid`
+      ", $_SESSION['uid'], 0));
   }
 
   public static function userCanCreateQuestion($gid) {
-    $isMod = DB::fetchField(DB::query("SELECT COUNT(*) FROM `user_group` WHERE `uid`=? AND `gid`=? AND `moderator`=?", $_SESSION['uid'], $gid, 1));
+    $isMod = DB::fetchField(DB::query("
+      SELECT
+        COUNT(*)
+      FROM
+        `user_group`
+      WHERE
+        `uid`=?
+        AND `gid`=?
+        AND `moderator`=?
+      ", $_SESSION['uid'], $gid, 1));
 
     return $isMod == 1;
   }
@@ -129,7 +225,17 @@ class Group {
       return false;
     }
 
-    $groups = DB::fetchAll(DB::query("SELECT `gid`, `name`, `password` FROM `group` WHERE `name` LIKE '%" . $name . "%' LIMIT 20"));
+    $groups = DB::fetchAll(DB::query("
+      SELECT
+        `gid`,
+        `name`,
+        `password`,
+        `description`
+      FROM
+        `group`
+      WHERE
+        `name` LIKE '%" . $name . "%'
+      LIMIT 20"));
 
     foreach ($groups as $key => $group) {
       $groups[$key]['protected'] = $group['password'] != '';
@@ -143,10 +249,21 @@ class Group {
   public static function join($gid, $password) {
     Security::requireLoggedIn();
 
-    $groupPassword = DB::fetchField(DB::query("SELECT `password` FROM `group` WHERE `gid`=?", $gid));
+    $groupPassword = DB::fetchField(DB::query("
+      SELECT
+        `password`
+      FROM
+        `group`
+      WHERE
+        `gid`=?
+      ", $gid));
 
     if ($password == $groupPassword) {
-      return DB::querySuccessful(DB::query("INSERT INTO `user_group` (`uid`, `gid`) VALUES (?, ?)", $_SESSION['uid'], $gid));
+      return DB::querySuccessful(DB::query("
+        INSERT INTO
+          `user_group` (`uid`, `gid`)
+          VALUES (?, ?)
+        ", $_SESSION['uid'], $gid));
     } else {
       return false;
     }
@@ -154,10 +271,49 @@ class Group {
 
   public static function getContributors($gid) {
     if (!is_null($gid)) {
-      $contributors = DB::fetchAll(DB::query("SELECT u.name, (SELECT COUNT(*) FROM question_group qg, question q WHERE qg.gid=ug.gid AND qg.qid=q.qid AND q.uid=u.uid) AS question_count FROM user u, user_group ug WHERE ug.uid=u.uid AND ug.gid=? AND moderator=? ORDER BY question_count DESC", $gid, 1));
+      $contributors = DB::fetchAll(DB::query("
+        SELECT
+          `u`.`name`,
+          (SELECT
+            COUNT(*)
+          FROM
+            `question_group` `qg`,
+            `question` `q`
+          WHERE
+            `qg`.`gid`=`ug`.`gid`
+            AND `qg`.`qid`=`q`.`qid`
+            AND `q`.`uid`=`u`.`uid`
+          ) AS `question_count`
+        FROM
+          `user` `u`,
+          `user_group` `ug`
+        WHERE
+          `ug`.`uid`=`u`.`uid`
+          AND `ug`.`gid`=?
+          AND `ug`.`moderator`=?
+        ORDER BY
+          `question_count` DESC
+        ", $gid, 1));
     }
     else {
-      $contributors = DB::fetchAll(DB::query("SELECT u.name, (SELECT COUNT(*) FROM question q WHERE q.uid=u.uid) AS question_count FROM user u, user_group ug WHERE ug.uid=u.uid AND moderator=? ORDER BY question_count DESC", 1));
+      $contributors = DB::fetchAll(DB::query("
+        SELECT
+          `u`.`name`,
+          (SELECT
+            COUNT(*)
+          FROM
+            `question` `q`
+          WHERE
+            `q`.`uid`=`u`.`uid`
+          ) AS `question_count`
+        FROM
+          `user` `u`,
+          `user_group` `ug`
+        WHERE
+          `ug`.`uid`=`u`.`uid`
+          AND `moderator`=?
+        ORDER BY
+          `question_count` DESC", 1));
     }
 
     return $contributors;
@@ -166,7 +322,15 @@ class Group {
   public static function leave($gid) {
     Security::requireLoggedIn();
 
-    return DB::querySuccessful(DB::query("UPDATE `user_group` SET `left`=? WHERE `uid`=? AND `gid`=?", 1, $_SESSION['uid'], $gid));
+    return DB::querySuccessful(DB::query("
+      UPDATE
+        `user_group`
+      SET
+        `left`=?
+      WHERE
+        `uid`=?
+        AND `gid`=?
+      ", 1, $_SESSION['uid'], $gid));
   }
 
   public static function setModerator($gid, $uid, $moderator) {
@@ -176,10 +340,27 @@ class Group {
       return false;
     }
 
-    $isAdmin = DB::fetchField(DB::query("SELECT COUNT(*) FROM `user_group` WHERE `gid`=? AND `uid`=? AND `administrator`=?", $gid, $_SESSION['uid'], 1));
+    $isAdmin = DB::fetchField(DB::query("
+      SELECT
+        COUNT(*)
+      FROM
+        `user_group`
+      WHERE
+        `gid`=?
+        AND `uid`=?
+        AND `administrator`=?
+      ", $gid, $_SESSION['uid'], 1));
 
     if ($isAdmin) {
-      DB::query("UPDATE `user_group` SET `moderator`=? WHERE `gid`=? AND `uid`=?", $moderator, $gid, $uid);
+      DB::query("
+        UPDATE
+          `user_group`
+        SET
+          `moderator`=?
+        WHERE
+          `gid`=?
+          AND `uid`=?
+        ", $moderator, $gid, $uid);
 
       return true;
     }
