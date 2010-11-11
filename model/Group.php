@@ -152,6 +152,17 @@ class Group {
     }
   }
 
+  public static function getContributors($gid) {
+    if (!is_null($gid)) {
+      $contributors = DB::fetchAll(DB::query("SELECT u.name, (SELECT COUNT(*) FROM question_group qg, question q WHERE qg.gid=ug.gid AND qg.qid=q.qid AND q.uid=u.uid) AS question_count FROM user u, user_group ug WHERE ug.uid=u.uid AND ug.gid=? AND moderator=? ORDER BY question_count DESC", $gid, 1));
+    }
+    else {
+      $contributors = DB::fetchAll(DB::query("SELECT u.name, (SELECT COUNT(*) FROM question q WHERE q.uid=u.uid) AS question_count FROM user u, user_group ug WHERE ug.uid=u.uid AND moderator=? ORDER BY question_count DESC", 1));
+    }
+
+    return $contributors;
+  }
+
   public static function leave($gid) {
     Security::requireLoggedIn();
 

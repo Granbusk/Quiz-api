@@ -80,6 +80,28 @@ class Question {
     );
   }
 
+  public static function getQuestions($gid, $uid) {
+    if (!is_null($gid)) {
+      $questions = DB::fetchAll(DB::query("SELECT q.qid, q.text AS question_text, q.answer_explanation, (SELECT COUNT(*) FROM user_answer ua WHERE ua.qid=q.qid) AS answer_count FROM question q, question_group qg WHERE qg.gid=? AND qg.qid=q.qid AND q.uid=?", $gid, $uid));
+    }
+    else {
+      $questions = DB::fetchAll(DB::query("SELECT q.qid, q.text AS question_text, q.answer_explanation, (SELECT COUNT(*) FROM user_answer ua WHERE ua.qid=q.qid) AS answer_count FROM question q WHERE q.uid=?", $uid));
+    }
+
+    foreach ($questions as $key=>$question) {
+      $questions[$key]['alternatives'] = DB::fetchAll(DB::query("SELECT a.text AS alternative_text, a.correct, (SELECT COUNT(*) FROM user_answer ua WHERE ua.aid=a.aid) AS choosed_count FROM alternative a WHERE a.qid=?", $question['qid']));
+
+      // for xml formatting
+      $questions[$key]['nodename'] = 'question';
+    }
+
+    return $questions;
+  }
+
+  public static function getMine($gid) {
+    return self::getQuestions($gid, $_SESSION['uid']);
+  }
+
   public static function answer($qid, $aid) {
     Security::requireLoggedIn();
 

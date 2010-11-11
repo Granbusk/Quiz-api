@@ -92,6 +92,12 @@ switch ($model) {
             $response = Group::getTopList($_POST['gid'], $_POST['limit']);
             break;
 
+          case 'contributors':
+            $params[1] = count($params) >= 2 ? $params[1] : null;
+            $response = Group::getContributors($params[1]);
+            break;
+
+
           case 'overview':
             $response = Group::getOverview($_POST['gid']);
             break;
@@ -125,8 +131,12 @@ switch ($model) {
         break;
 
       case 'get':
-        $response = Question::get($params[0], $params[1]);
-        
+        $response = Question::get($params[0], $params[1]);        
+        break;
+
+      case 'my':
+        $params[0] = count($params) >= 1 ? $params[0] : null;        
+        $response = Question::getMine($params[0]);
         break;
 
       case 'answer':

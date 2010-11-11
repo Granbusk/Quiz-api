@@ -24,8 +24,15 @@ class ArrayToXML {
       // no numeric keys in our xml please!
       if (is_numeric($key)) {
         // make string key...
-        $key = 'node';
+        if (array_key_exists('nodename', $value)) {
+          $key = $value['nodename'];
+        }
+        else {
+          $key = 'node';
+        }
       }
+
+      unset($data['key']['nodename']);
 
       // replace anything not alpha numeric
       $key = preg_replace('/[^a-z0-9\_]/i', '', strtolower($key));
