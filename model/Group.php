@@ -193,8 +193,7 @@ class Group {
     return DB::fetchAll(DB::query("
       SELECT
         `g`.`gid`,
-        `g`.`name`,
-        `g`.`description`
+        `g`.`name`
       FROM
         `group` `g`,
         `user_group` `ug`

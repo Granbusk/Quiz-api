@@ -24,7 +24,7 @@ class ArrayToXML {
       // no numeric keys in our xml please!
       if (is_numeric($key)) {
         // make string key...
-        if (array_key_exists('nodename', $value)) {
+        if (is_array($value) && array_key_exists('nodename', $value)) {
           $key = $value['nodename'];
         }
         else {
