@@ -190,7 +190,7 @@ class Group {
   }
 
   public static function find($name) {
-    if (strlen(trim($name)) < 3) {
+    if (strlen(trim($name)) == 0) {
       return false;
     }
 
