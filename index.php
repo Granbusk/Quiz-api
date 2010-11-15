@@ -81,10 +81,6 @@ switch ($model) {
 
       case 'get':
         switch ($params[0]) { 
-          case 'users':
-            $response = Group::getUsers($params[1]);
-            break;
-
           case 'mine':
             $response = Group::getMine();
             break;

@@ -28,37 +28,6 @@ class Group {
     return $gid;
   }
 
-  public static function getUsers($gid) {
-    return array(
-        'admin' => DB::fetchField(DB::query("
-          SELECT
-            COUNT(*)
-          FROM
-            `user_group`
-          WHERE
-            `gid`=?
-            AND `uid`=?
-            AND `administrator`=?
-          ", $gid, $_SESSION['uid'], 1)),
-        
-        'users' => DB::fetchAll(DB::query("
-          SELECT
-            `u`.`uid`,
-            `u`.`name`,
-            `u`.`gravatar`,
-            `ug`.`administrator`,
-            `ug`.`moderator`
-          FROM
-            `user` `u`,
-            `user_group` `ug`
-          WHERE
-            `ug`.`gid`=?
-            AND `ug`.`uid`=`u`.`uid`
-            AND `ug`.`left`=?
-          ", $gid, 0)),
-    );
-  }
-
   public static function getById($gid) {
     $joined = DB::fetchField(DB::query("
       SELECT
@@ -84,7 +53,8 @@ class Group {
           `ug`.`gid`=`g`.`gid`
           AND `ug`.`uid`=?
           AND `g`.`gid`=?
-        ", $_SESSION['uid'], $gid));
+          AND `ug`.`left`=?
+        ", $_SESSION['uid'], $gid, 0));
 
       $group['protected'] = $group['password'] != '';
 
@@ -258,6 +228,8 @@ class Group {
       ", $gid));
 
     if ($password == $groupPassword) {
+      DB::query("DELETE FROM `user_group` WHERE `uid`=? AND `gid`=?", $_SESSION['uid'], $gid);
+
       return DB::querySuccessful(DB::query("
         INSERT INTO
           `user_group` (`uid`, `gid`)
